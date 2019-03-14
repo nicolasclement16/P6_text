@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
-        <title>Prédiction de retards d'avion</title>
+        <title>Recommandation de tags</title>
     </head>
 
     <body>
@@ -18,7 +18,7 @@
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="navbar-brand" href="#">Retard d'avions</a>
+                    <a class="navbar-brand" href="#">Saisie de la question</a>
                 </div>
             </div>
         </nav>
@@ -29,14 +29,8 @@
 
         <div class="row">
             <form action="." method="POST">
-                <textarea class="form-control" name="jour" placeholder="Jour du départ"></textarea>
-                <textarea class="form-control" name="mois" placeholder="Mois du départ (entre 1 et 12)"></textarea>
-                <textarea class="form-control" name="heure" placeholder="Heure du départ (2030 pour 20h30)"></textarea>
-                <textarea class="form-control" name="tps_vol" placeholder="Temps de vol prévu en minutes"></textarea>
-                <textarea class="form-control" name="orig" placeholder="Aéroport de départ (STL pour Seatlle)"></textarea>
-                <textarea class="form-control" name="dest" placeholder="Aéroport de destination (STL pour Seatlle)"></textarea>
-                <textarea class="form-control" name="carr" placeholder="Compagnie aérienne (AA pour American Airlines)"></textarea>
-                <input type="submit" class="btn btn-success" value="Affichez le retard prévu">
+                <textarea class="form-control" name="question" placeholder="Saisissez votre question en Anglais"></textarea>
+                <input type="submit" class="btn btn-success" value="Affichez les tags recommandés">
             </form>
         </div>
 

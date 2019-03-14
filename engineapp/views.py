@@ -17,39 +17,32 @@ from nltk.stem.snowball import EnglishStemmer
 from bs4 import BeautifulSoup
 
 
-AUTO_PATH = os_path.abspath(os_path.split(__file__)[0])
-LOCAL_PATH =  'C:/users/Nicolas/37.5/perso - Documents/Formation Data Scientist/Parcours Data Scientist/P6 - Texte/P6_text'
-PATH = LOCAL_PATH
+PATH = os_path.abspath(os_path.split(__file__)[0])
 
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
 app.config.from_object('config')
 
-#Chargment des objets pickle
 
 CT_DIR = app.config['BASESAVE']
 print(CT_DIR)
+
 def load_obj(name):
     with open(os.path.join(CT_DIR, name), 'rb') as f:
         mon_depickler = pickle.Unpickler(f)
         return mon_depickler.load()
 
+#Chargement des pickles
 TAG_LIST = load_obj('tags_list')
 STOP_WORDS = load_obj('stop_words')
 LDA_MODEL = load_obj('lda_model')
 TF_LIST = load_obj('TF')
 
-#Saisie de la question
-QUESTION = input("Type your question in English")
-
-#Formatage de la question
-#nettoyage html
-QUESTION_CLEAN =  BeautifulSoup(QUESTION , 'html.parser').get_text()
-
-#Tokensiation
-tokenizer = nltk.RegexpTokenizer(r'[a-z0-9+#]+')
-QUESTION_TOK = tokenizer.tokenize(QUESTION_CLEAN.lower())
+#Extraction des données des pickles
+TF = TF_LIST[0]
+TF_FEATURE_NAMES = TF_LIST[1]
+LDA_COMPONENTS = LDA_MODEL.components_ # p(words|topic)
 
 #Stemmatisation
 stemmer = EnglishStemmer()
@@ -67,27 +60,60 @@ def intersect_stem(text,sw):
     final_list = [stemmer.stem(k) for k in text if k not in sw]
     return final_list
 
-QUESTION_TOK_LIST = intersect_stem(QUESTION_TOK, STOP_WORDS)
 
-FINAL_DOC = ' '.join(QUESTION_TOK_LIST)
+def format_question(quest):
 
-#Génération des mots recommandés
-TF = TF_LIST[0]
-TF_FEATURE_NAMES = TF_LIST[1]
+        """fonction permettant d'appliquer tous les formatages à la question
+        saisie
+        """
 
-LDA_OUTPUT = LDA_MODEL.transform(TF.transform([FINAL_DOC])) #p(topic|document)
-LDA_COMPONENTS = LDA_MODEL.components_ # p(words|topic)
+        #Formatage de la question
+        #nettoyage html
+        QUESTION_CLEAN =  BeautifulSoup(quest , 'html.parser').get_text()
 
-def lda_tag_doc(n):
+        #Tokensiation
+        tokenizer = nltk.RegexpTokenizer(r'[a-z0-9+#]+')
+        QUESTION_TOK = tokenizer.tokenize(QUESTION_CLEAN.lower())
+
+        QUESTION_TOK_LIST = intersect_stem(QUESTION_TOK, STOP_WORDS)
+
+        FINAL_DOC = ' '.join(QUESTION_TOK_LIST)
+
+        LDA_OUTPUT = LDA_MODEL.transform(TF.transform([FINAL_DOC])) #p(topic|document)
+
+        return LDA_OUTPUT[0]
+
+
+def lda_tag_doc(quest, n):
     
     """Fonction permettant de renvoyer les n tags les plus pertinents 
     pour un document donné
     """
     
     lda_tags = []
-    step1 = LDA_OUTPUT[0]*LDA_COMPONENTS.T
+    step1 = format_question(quest)*LDA_COMPONENTS.T
     step2 = step1.sum(axis=1)
-    lda_tags = [TF_FEATURE_NAMES[i]for i in np.argsort(-step2)[:n]]
-    return lda_tags
+    lda_tags = [TF_FEATURE_NAMES[i] for i in np.argsort(-step2)[:n]]
+    lda_tags_str = ', '.join(lda_tags)
+    return lda_tags_str
 
-lda_tag_doc(10)
+def retjson(a):
+    #python2json = json.dumps(a)
+    return a
+    #return python2json
+
+comments = [""]
+@app.route('/' , methods=["GET" , "POST"])
+def index():
+    if request.method == "GET":
+        return render_template("index.html" , comments = comments )
+
+    QUESTION = str(request.form["question"])
+    
+    reco_tag = lda_tag_doc(QUESTION, 10)
+    comments[0] = reco_tag 
+    return retjson(reco_tag)
+
+
+if __name__ == "__main__":
+    app.run()
