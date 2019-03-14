@@ -102,3 +102,6 @@ virtualenv.exe
 
 # mypy
 .mypy_cache/
+
+#large files
+clf
