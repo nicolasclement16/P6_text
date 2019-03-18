@@ -38,11 +38,14 @@ TAG_LIST = load_obj('tags_list')
 STOP_WORDS = load_obj('stop_words')
 LDA_MODEL = load_obj('lda_model')
 TF_LIST = load_obj('TF')
+CLF_LIST = load_obj('clf')
 
 #Extraction des données des pickles
 TF = TF_LIST[0]
 TF_FEATURE_NAMES = TF_LIST[1]
 LDA_COMPONENTS = LDA_MODEL.components_ # p(words|topic)
+CLF = CLF_LIST[0]
+TFIDF = CLF_LIST[1]
 
 #Stemmatisation
 stemmer = EnglishStemmer()
@@ -78,10 +81,25 @@ def format_question(quest):
         QUESTION_TOK_LIST = intersect_stem(QUESTION_TOK, STOP_WORDS)
 
         FINAL_DOC = ' '.join(QUESTION_TOK_LIST)
+        
+        return FINAL_DOC
+        
 
-        LDA_OUTPUT = LDA_MODEL.transform(TF.transform([FINAL_DOC])) #p(topic|document)
-
+def format_question_lda(quest):
+        
+        """Fonction appliquant le formatage nécessaire pour la méthode LDA
+        """
+        
+        LDA_OUTPUT = LDA_MODEL.transform(TF.transform([quest])) #p(topic|document)
         return LDA_OUTPUT[0]
+
+def format_question_clf(quest):
+        
+        """Fonction appliquant le formatage nécessaire pour la méthode supervisée.
+        """
+
+        X = TFIDF.transform([quest])
+        return X
 
 
 def lda_tag_doc(quest, n):
@@ -91,11 +109,34 @@ def lda_tag_doc(quest, n):
     """
     
     lda_tags = []
-    step1 = format_question(quest)*LDA_COMPONENTS.T
+    step1 = format_question_lda(quest)*LDA_COMPONENTS.T
     step2 = step1.sum(axis=1)
     lda_tags = [TF_FEATURE_NAMES[i] for i in np.argsort(-step2)[:n]]
     lda_tags_str = ', '.join(lda_tags)
     return lda_tags_str
+
+
+def clf_tag(quest):
+    
+    """Fonction permettant de renvoyer les tags issus de la méthode supervisée
+    """
+    
+    doc = format_question_clf(quest)
+    n = CLF.predict(doc).sum()
+    recos = [TAG_LIST[i] for i in np.argsort(-CLF.predict(doc)[0])[:n] ] 
+    clf_tags_str = ', '.join(recos)
+    return clf_tags_str
+
+
+def result(a,b):
+    
+    """Fonction permettant de renvoyer les tags issus de la méthode supervisée
+    """
+
+    prompt1 = "Nous avons trouvé les tags existants suivants :\n"
+    prompt2 = "\nNous vous recommandons également les mots clés suivants :\n"
+    prompt = prompt1 + a + prompt2 + b
+    return prompt
 
 def retjson(a):
     #python2json = json.dumps(a)
@@ -110,7 +151,9 @@ def index():
 
     QUESTION = str(request.form["question"])
     
-    reco_tag = lda_tag_doc(QUESTION, 10)
+    #reco_tag = lda_tag_doc(QUESTION, 20)
+    #reco_tag = clf_tag(QUESTION)
+    reco_tag = result(clf_tag(QUESTION), lda_tag_doc(QUESTION, 20))
     comments[0] = reco_tag 
     return retjson(reco_tag)
 
